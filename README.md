@@ -9,7 +9,7 @@
 ## BÁO CÁO ĐỒ ÁN NHÓM 2
 
 ### Giảng viên hướng dẫn
-- **Th.S Trần Tuấn Dũng** - *dungtt@uit.edu.vn*
+- **Th.S Trần Tuấn Dũng** - *dungtrt@uit.edu.vn*
 
 ### Thành viên nhóm
 
