@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cài đặt - JS Malware Checker</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f7fafc;
+      padding: 24px;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      padding: 32px;
+    }
+    
+    h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .subtitle {
+      color: #718096;
+      margin-bottom: 32px;
+    }
+    
+    .section {
+      margin-bottom: 32px;
+    }
+    
+    h2 {
+      font-size: 18px;
+      margin-bottom: 16px;
+      color: #2d3748;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #4a5568;
+    }
+    
+    input[type="text"],
+    textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    
+    input[type="text"]:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+    
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #5568d3;
+    }
+    
+    .btn-secondary {
+      background: #e2e8f0;
+      color: #4a5568;
+      margin-left: 8px;
+    }
+    
+    .btn-secondary:hover {
+      background: #cbd5e0;
+    }
+    
+    .list {
+      border: 2px solid #e2e8f0;
+      border-radius: 6px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .list-item {
+      padding: 12px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .list-item:last-child {
+      border-bottom: none;
+    }
+    
+    .list-item:hover {
+      background: #f7fafc;
+    }
+    
+    .btn-remove {
+      background: #fc8181;
+      color: white;
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+    
+    .btn-remove:hover {
+      background: #f56565;
+    }
+    
+    .empty-list {
+      padding: 24px;
+      text-align: center;
+      color: #a0aec0;
+    }
+    
+    .help-text {
+      font-size: 13px;
+      color: #718096;
+      margin-top: 4px;
+    }
+    
+    .success-message {
+      background: #c6f6d5;
+      color: #22543d;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    
+    .hash-item {
+      background: #f7fafc;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+    
+    .hash-value {
+      font-family: monospace;
+      font-size: 12px;
+      color: #4a5568;
+      word-break: break-all;
+    }
+    
+    .hash-meta {
+      font-size: 11px;
+      color: #a0aec0;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🛡️ Cài đặt</h1>
+    <p class="subtitle">Quản lý whitelist và custom hashes</p>
+    
+    <div class="success-message" id="successMessage">
+      ✓ Đã lưu thành công!
+    </div>
+    
+    <!-- Whitelist Section -->
+    <div class="section">
+      <h2>Whitelist Domains</h2>
+      <p class="help-text">Các domain này sẽ không bị kiểm tra. Hỗ trợ wildcard: *.example.com</p>
+      
+      <div class="form-group">
+        <input type="text" id="whitelistInput" placeholder="Nhập domain (vd: google.com hoặc *.cloudflare.com)">
+        <button class="btn-primary" id="btnAddWhitelist" style="margin-top: 8px;">Thêm vào Whitelist</button>
+      </div>
+      
+      <div class="list" id="whitelistList">
+        <div class="empty-list">Chưa có domain nào</div>
+      </div>
+    </div>
+    
+    <!-- Custom Hashes Section -->
+    <div class="section">
+      <h2>Custom Hashes</h2>
+      <p class="help-text">Thêm hash của các file malware bạn phát hiện</p>
+      
+      <div class="form-group">
+        <label>Hash (MD5, SHA1, hoặc SHA256)</label>
+        <input type="text" id="hashInput" placeholder="Nhập hash">
+      </div>
+      
+      <div class="form-group">
+        <label>Loại</label>
+        <input type="text" id="hashType" placeholder="Vd: Trojan, Ransomware, Adware...">
+      </div>
+      
+      <div class="form-group">
+        <label>Mô tả (tùy chọn)</label>
+        <textarea id="hashDescription" placeholder="Ghi chú về hash này..."></textarea>
+      </div>
+      
+      <button class="btn-primary" id="btnAddHash">Thêm Hash</button>
+      
+      <div style="margin-top: 16px;" id="customHashesList"></div>
+    </div>
+    
+    <!-- Export/Import Section -->
+    <div class="section">
+      <h2>Sao lưu & Khôi phục</h2>
+      <button class="btn-secondary" id="btnExport">Xuất cấu hình</button>
+      <button class="btn-secondary" id="btnImport">Nhập cấu hình</button>
+      <input type="file" id="importFile" accept=".json" style="display: none;">
+    </div>
+    
+    <!-- ML Data Export Section -->
+    <div class="section">
+      <h2>Machine Learning</h2>
+      <p class="help-text">Export features đã extract để train ML model</p>
+      <button class="btn-primary" id="btnExportML">Export ML Training Data</button>
+      <p class="help-text" style="margin-top: 8px;">File JSON chứa features của tất cả scripts đã phân tích</p>
+    </div>
+  </div>
+  
+  <script src="options.js"></script>
+</body>
+</html>

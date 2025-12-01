@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đang kiểm tra bảo mật...</title>
+  <link rel="stylesheet" href="blocking.css">
+</head>
+<body>
+  <!-- Background particles -->
+  <div class="bg-particles" id="particles"></div>
+  
+  <div class="container" id="mainContainer">
+    <!-- Scanner animation -->
+    <div class="scanner-container">
+      <div class="scanner-ring ring-outer"></div>
+      <div class="scanner-ring ring-middle"></div>
+      <div class="scanner-ring ring-inner"></div>
+      <div class="shield-icon"></div>
+      <div class="scan-dots" id="scanDots"></div>
+    </div>
+    
+    <h1 id="title">ĐANG KIỂM TRA BẢO MẬT</h1>
+    <p class="status-text" id="status">Phân tích JavaScript files...</p>
+    
+    <!-- Progress bars -->
+    <div class="progress-container">
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressBar"></div>
+        <div class="progress-glow"></div>
+      </div>
+    </div>
+    
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat-item">
+        <span class="stat-number" id="checkedCount">0</span>
+        <div class="stat-label">Đã kiểm tra</div>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number" id="totalCount">0</span>
+        <div class="stat-label">Tổng files</div>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number" id="riskScore">0</span>
+        <div class="stat-label">Risk Score</div>
+      </div>
+    </div>
+    
+    <!-- URL display -->
+    <div class="url-display" id="targetUrl"></div>
+    
+    <!-- Warning containers -->
+    <div class="warning-container" id="warningMalware">
+      <div class="warning-title glitch">⚠️ MÃ ĐỘC PHÁT HIỆN</div>
+      <p>JavaScript files có hash trùng khớp với database malware.</p>
+      <div class="warning-details" id="malwareDetails"></div>
+      <div class="button-container">
+        <button class="btn btn-danger" id="btnBlockMalware">Chặn và quay lại</button>
+        <button class="btn btn-secondary" id="btnContinueMalware">Tiếp tục (nguy hiểm)</button>
+      </div>
+    </div>
+    
+    <div class="warning-container" id="warningSuspect">
+      <div class="warning-title">🔍 HÀNH VI ĐÁNG NGỜ</div>
+      <p>JavaScript files có các đặc điểm nguy hiểm nhưng chưa có trong database.</p>
+      <div class="warning-details" id="suspectDetails"></div>
+      <div class="button-container">
+        <button class="btn btn-danger" id="btnBlockSuspect">Chặn</button>
+        <button class="btn btn-secondary" id="btnContinueSuspect">Tiếp tục</button>
+      </div>
+    </div>
+  </div>
+  
+  <script src="../lib/anime.min.js"></script>
+  <script src="blocking.js"></script>
+</body>
+</html>

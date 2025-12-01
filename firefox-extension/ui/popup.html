@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JS Malware Checker</title>
+  <style>
+    body {
+      width: 350px;
+      margin: 0;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+    }
+    
+    h2 {
+      margin: 0 0 16px 0;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      background: #f7fafc;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .toggle {
+      position: relative;
+      width: 48px;
+      height: 24px;
+    }
+    
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #cbd5e0;
+      transition: 0.3s;
+      border-radius: 24px;
+    }
+    
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+    
+    input:checked + .slider {
+      background-color: #667eea;
+    }
+    
+    input:checked + .slider:before {
+      transform: translateX(24px);
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    
+    .stat-card {
+      background: #f7fafc;
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .stat-number {
+      font-size: 24px;
+      font-weight: bold;
+      color: #667eea;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      color: #718096;
+      margin-top: 4px;
+    }
+    
+    .scripts-list {
+      max-height: 200px;
+      overflow-y: auto;
+      margin-bottom: 16px;
+    }
+    
+    .script-item {
+      padding: 8px;
+      margin-bottom: 8px;
+      background: #f7fafc;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+    
+    .script-url {
+      color: #4a5568;
+      word-break: break-all;
+      margin-bottom: 4px;
+    }
+    
+    .script-status {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    
+    .status-clean {
+      background: #c6f6d5;
+      color: #22543d;
+    }
+    
+    .status-malware {
+      background: #fed7d7;
+      color: #742a2a;
+    }
+    
+    button {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      background: #667eea;
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    button:hover {
+      background: #5568d3;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 24px;
+      color: #a0aec0;
+    }
+  </style>
+</head>
+<body>
+  <h2>🛡️ Malware Checker</h2>
+  
+  <div class="status">
+    <span>Bảo vệ</span>
+    <label class="toggle">
+      <input type="checkbox" id="toggleProtection" checked>
+      <span class="slider"></span>
+    </label>
+  </div>
+  
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-number" id="totalChecked">0</div>
+      <div class="stat-label">Đã kiểm tra</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="totalMalware" style="color: #fc8181;">0</div>
+      <div class="stat-label">Phát hiện</div>
+    </div>
+  </div>
+  
+  <h3 style="font-size: 14px; margin: 0 0 8px 0;">Scripts gần đây</h3>
+  <div class="scripts-list" id="scriptsList">
+    <div class="empty-state">Chưa có dữ liệu</div>
+  </div>
+  
+  <button id="btnOptions">Cài đặt</button>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
