@@ -16,6 +16,9 @@ const Scorer = {
     '.tk', '.ml', '.ga', '.cf', '.gq', // Free TLDs
     'pastebin.com', 'hastebin.com' // Code sharing
   ],
+
+  // Weight to give when an IP is found in blacklist
+  ipWeight: 40,
   
   // Check if URL is from trusted source
   isTrustedSource(url) {
@@ -105,6 +108,15 @@ const Scorer = {
     }
     score += unknownDomainScore;
     breakdown.unknownDomain = unknownDomainScore;
+
+    // 10. IP blacklist (configurable weight)
+    const ipWeight = this.ipWeight || 40;
+    let ipScore = 0;
+    if (features.networkMatches && features.networkMatches.blacklistedIps && features.networkMatches.blacklistedIps.length > 0) {
+      ipScore = ipWeight;
+    }
+    score += ipScore;
+    breakdown.ipMatches = ipScore;
     
     // Cap at 100
     score = Math.min(score, 100);
@@ -309,6 +321,14 @@ const Scorer = {
     // Hash match
     if (breakdown.hashMatch) {
       reasons.push(`⚠️ Hash trùng với database mã độc (${hashMatch.source || 'Tempico'})`);
+    }
+
+    // IP matches
+    if (features.networkMatches && features.networkMatches.blacklistedIps && features.networkMatches.blacklistedIps.length > 0) {
+      for (const ip of features.networkMatches.blacklistedIps) {
+        const ipText = ip && ip.ip ? ip.ip : (ip && ip.meta && ip.meta.IP) || JSON.stringify(ip);
+        reasons.push(`⚠️ Kết nối đến IP danh sách đen: ${ipText}`);
+      }
     }
     
     // Trusted source

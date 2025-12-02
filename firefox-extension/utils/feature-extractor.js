@@ -76,11 +76,51 @@ const FeatureExtractor = {
         
         // Suspicious patterns
         suspiciousPatterns: this.detectSuspiciousPatterns(ast, code),
+
+        // Network matches (IPs/domains)
+        networkMatches: {
+          ips: [], // literal IPs found in code
+          blacklistedIps: [] // matches from local IP DB (if available)
+        },
         
         // Extraction time
         extractionTime: Date.now() - startTime
       };
-      
+      // Detect IP literals in code (IPv4 basic pattern) and check against IpDB if present
+      try {
+        const ipRegex = /\b\d{1,3}(?:\.\d{1,3}){3}\b/g;
+        const ips = Array.from(new Set((code.match(ipRegex) || []).map(s => s.trim())));
+        features.networkMatches.ips = ips;
+
+        if (typeof IpDB !== 'undefined' && IpDB && IpDB.isIpBlacklisted) {
+          for (const ip of ips) {
+            try {
+              const res = await IpDB.isIpBlacklisted(ip);
+              if (res && res.found) {
+                features.networkMatches.blacklistedIps.push(res);
+              }
+            } catch (e) {
+              // ignore per-IP errors
+            }
+          }
+        } else {
+          // Also check URL domains that are numeric IPs
+          for (const d of features.urlAnalysis.domains || []) {
+            if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(d)) {
+              features.networkMatches.ips.push(d);
+              if (typeof IpDB !== 'undefined' && IpDB && IpDB.isIpBlacklisted) {
+                try {
+                  const res = await IpDB.isIpBlacklisted(d);
+                  if (res && res.found) features.networkMatches.blacklistedIps.push(res);
+                } catch (e) {}
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // non-fatal
+      }
+
       return { success: true, features };
       
     } catch (error) {
