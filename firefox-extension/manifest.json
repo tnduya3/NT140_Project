@@ -17,12 +17,9 @@
   
   "background": {
     "scripts": [
-      "lib/acorn.min.js",
       "utils/hash-utils.js",
-      "utils/tempico-api.js",
       "utils/hash-db.js",
-      "utils/feature-extractor.js",
-      "utils/scorer.js",
+      "utils/ip-db.js",
       "background.js"
     ]
   },

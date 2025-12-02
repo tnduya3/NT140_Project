@@ -142,26 +142,23 @@ function startScanning() {
     
     const { status, hasMalware, hasSuspect, scripts, totalScripts } = response;
     
-    // Update UI
-    const checkedScripts = scripts.filter(s => s.status !== 'pending').length;
-    updateProgress(checkedScripts, totalScripts);
-    
-    // Calculate average risk score
-    const completedScripts = scripts.filter(s => s.status !== 'pending' && s.score);
-    const avgScore = completedScripts.length > 0 
-      ? Math.round(completedScripts.reduce((sum, s) => sum + (s.score?.score || 0), 0) / completedScripts.length)
-      : 0;
-    
-    animateNumber('riskScore', avgScore);
+      // Update UI
+      const checkedScripts = scripts.filter(s => s.status !== 'pending').length;
+      updateProgress(checkedScripts, totalScripts);
+
+      // Count threats (hash matches or ip matches)
+      const maliciousScripts = scripts.filter(s => s.status === 'malware');
+      // Also treat any script with ipMatches as threat
+      const ipThreats = scripts.filter(s => s.ipMatches && s.ipMatches.length > 0 && s.status !== 'malware');
+      const threatCount = maliciousScripts.length + ipThreats.length;
+      animateNumber('riskScore', threatCount);
     
     // Check if complete
     if (status === 'complete') {
       clearInterval(checkInterval);
-      
-      if (hasMalware) {
+
+      if (maliciousScripts.length > 0 || ipThreats.length > 0) {
         showMalwareWarning(scripts);
-      } else if (hasSuspect) {
-        showSuspectWarning(scripts);
       } else {
         showSuccess();
         setTimeout(() => redirectToTarget(), 2000);
@@ -246,7 +243,8 @@ function showSuccess() {
 // Show malware warning
 function showMalwareWarning(scripts) {
   const maliciousScripts = scripts.filter(s => s.status === 'malware');
-  
+  const ipThreats = scripts.filter(s => s.ipMatches && s.ipMatches.length > 0 && s.status !== 'malware');
+
   // Hide main content
   anime({
     targets: '.scanner-container, .progress-container, .stats, .url-display',
@@ -254,16 +252,16 @@ function showMalwareWarning(scripts) {
     translateY: -30,
     duration: 500
   });
-  
+
   // Change container style
   const container = document.getElementById('mainContainer');
   container.classList.add('warning-malware');
-  
+
   // Show warning
   setTimeout(() => {
     const warningEl = document.getElementById('warningMalware');
     warningEl.classList.add('active');
-    
+
     anime({
       targets: '#warningMalware',
       opacity: [0, 1],
@@ -271,53 +269,27 @@ function showMalwareWarning(scripts) {
       duration: 800,
       easing: 'easeOutElastic(1, .8)'
     });
-    
-    // Show details
-    const details = maliciousScripts.map(s => {
+
+    // Build details: include sha256, hash source, and IP matches
+    const details = scripts.filter(s => s.status === 'malware' || (s.ipMatches && s.ipMatches.length > 0)).map(s => {
       const shortUrl = s.url.length > 50 ? s.url.substring(0, 50) + '...' : s.url;
-      
-      // Get detection info
-      const source = s.source || 'unknown';
-      const classification = s.classification || null;
-      const severity = s.severity;
-      const matchType = s.matchType || 'SHA256';
-      
-      let detectionInfo = '';
-      let sourceDisplay = source;
-      
-      if (source === 'tempico' && classification) {
-        detectionInfo = classification;
-        if (severity !== undefined) {
-          detectionInfo += ` (Severity: ${severity}/10)`;
-        }
-        sourceDisplay = 'Tempico Labs';
-      } else if (source === 'custom') {
-        detectionInfo = 'Custom blacklist';
-        sourceDisplay = 'User defined';
-      } else if (source === 'none') {
-        // This is from static analysis scoring
-        detectionInfo = 'Suspicious behavior detected';
-        sourceDisplay = 'Static analysis';
-      } else {
-        detectionInfo = `Malware detected`;
-        if (severity !== undefined) {
-          detectionInfo += ` (Severity: ${severity}/10)`;
-        }
-      }
-      
+      const hash = s.sha256 || 'n/a';
+      const hashSource = s.hashResult?.source || s.hashResult?.source || (s.hashResult && s.hashResult.found ? 'local' : 'none');
+      const ipList = (s.ipMatches || []).map(im => im.ip || (im.meta && (im.meta.IP || im.meta.ip)) || JSON.stringify(im)).join(', ');
+
       return `
         <div class="script-item">
-          <div class="script-score high-risk">⚠️ MALWARE DETECTED</div>
+          <div class="script-score high-risk">⚠️ Threat</div>
           <div class="script-url" title="${s.url}">${shortUrl}</div>
-          <div class="warning-reason">${detectionInfo}</div>
-          <div class="warning-reason">Source: ${sourceDisplay}</div>
-          <div class="warning-reason">Hash: SHA256</div>
+          <div class="warning-reason">Hash: ${hash}</div>
+          <div class="warning-reason">Hash source: ${hashSource}</div>
+          ${ ipList ? `<div class="warning-reason">IP matches: ${ipList}</div>` : '' }
         </div>
       `;
     }).join('');
-    
+
     document.getElementById('malwareDetails').innerHTML = details;
-    
+
     // Glitch effect
     setInterval(() => {
       anime({
@@ -327,7 +299,7 @@ function showMalwareWarning(scripts) {
         duration: 100
       });
     }, 2000);
-    
+
   }, 500);
 }
 
