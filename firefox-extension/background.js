@@ -233,16 +233,28 @@ browser.webRequest.onBeforeRequest.addListener(
     });
     
     // Initialize pending check
+    // Try to capture the tab's current URL (the page user was on before this navigation)
+    let previousUrl = null;
+    try {
+      const tabInfo = await browser.tabs.get(tabId);
+      previousUrl = tabInfo && tabInfo.url ? tabInfo.url : null;
+    } catch (e) {
+      // ignore - may fail for some internal tabs
+    }
+
     pendingChecks.set(tabId, {
       url: url,
+      previousUrl: previousUrl,
       scripts: [],
       startTime: Date.now()
     });
     
     // Redirect to blocking page
-    const blockingUrl = browser.runtime.getURL('ui/blocking.html') + 
-                       '?url=' + encodeURIComponent(url) + 
-                       '&tabId=' + tabId;
+    // Include previous URL so the blocking UI can navigate back if requested
+    const blockingUrl = browser.runtime.getURL('ui/blocking.html') +
+               '?url=' + encodeURIComponent(url) +
+               '&tabId=' + tabId +
+               (previousUrl ? '&previous=' + encodeURIComponent(previousUrl) : '');
     
     return { redirectUrl: blockingUrl };
   },

@@ -39,7 +39,6 @@
       background: rgba(0, 0, 0, 0.9);
       border: 1px solid rgba(0, 255, 204, 0.3);
       border-radius: 20px;
-      backdrop-filter: blur(10px);
       padding: 40px 30px 30px;
       max-width: 900px;
       width: 95%;
@@ -512,3 +511,27 @@
       80% { transform: translate(2px, -2px); }
       100% { transform: translate(0); }
     }
+
+    /* Simple dark theme overrides for simplified blocking UI */
+    :root{--bg:#0b1220;--panel:#0f1724;--muted:#98a8bf;--text:#e6eef8;--accent:#ef4444;--accent-2:#f97316;--success:#059669}
+    body{background:var(--bg);color:var(--text);}
+    .container{background:var(--panel);border-radius:12px;padding:28px;box-shadow:0 6px 30px rgba(2,6,23,.7);border:1px solid rgba(255,255,255,0.03);max-width:720px;width:95%;}
+    .header{display:flex;gap:16px;align-items:center}
+    .logo{display:none}
+    .title{margin:0;font-size:18px;letter-spacing:.4px;color:var(--text)}
+    .subtitle{margin:4px 0 0;color:var(--muted);font-size:13px}
+    .progress{margin-top:18px;background:rgba(255,255,255,0.03);border-radius:999px;height:12px;position:relative;overflow:hidden}
+    .progress > .fill, .fill{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:999px;transition:width 400ms ease}
+    .stats{display:flex;gap:12px;margin-top:18px}
+    .stat{flex:1;background:transparent;padding:12px;border-radius:8px;text-align:center;border:1px solid rgba(255,255,255,0.02)}
+    .num{font-weight:700;font-size:18px;color:var(--text)}
+    .warn{margin-top:18px;padding:14px;border-radius:8px;background:rgba(220,38,38,0.06);border:1px solid rgba(220,38,38,0.12);color:#ffd6d6}
+    .warn-mild{margin-top:18px;padding:14px;border-radius:8px;background:rgba(250,204,21,0.05);border:1px solid rgba(250,204,21,0.10);color:#fff7df}
+    .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+    .btn{padding:8px 12px;border-radius:8px;border:1px solid transparent;cursor:pointer;font-weight:600}
+    .btn-danger{background:#b91c1c;color:#fff}
+    .btn-secondary{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.04)}
+    .small{font-size:13px;color:var(--muted)}
+    .url-display{margin-top:12px;color:var(--muted);word-break:break-all}
+    .footer{margin-top:12px;display:flex;justify-content:space-between;align-items:center;color:var(--muted)}
+    .warning-heading{font-weight:700}

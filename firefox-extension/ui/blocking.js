@@ -1,171 +1,57 @@
-// Enhanced blocking page with anime.js animations
+// Simplified blocking page (no animations)
 const urlParams = new URLSearchParams(window.location.search);
 const targetUrl = urlParams.get('url');
 const tabId = parseInt(urlParams.get('tabId'));
+const previousUrl = urlParams.get('previous');
 
-document.getElementById('targetUrl').textContent = targetUrl;
+const targetEl = document.getElementById('targetUrl');
+if (targetEl) targetEl.textContent = targetUrl || '';
 
 let checkInterval;
 let checkCount = 0;
-let animationTimeline;
 
-// Initialize animations when page loads
 document.addEventListener('DOMContentLoaded', () => {
-  initializeAnimations();
-  createBackgroundParticles();
   startScanning();
 });
 
-// Create animated background particles
-function createBackgroundParticles() {
-  const particlesContainer = document.getElementById('particles');
-  const particleCount = 50;
-  
-  for (let i = 0; i < particleCount; i++) {
-    const particle = document.createElement('div');
-    particle.className = 'particle';
-    particle.style.left = Math.random() * 100 + '%';
-    particle.style.top = Math.random() * 100 + '%';
-    particlesContainer.appendChild(particle);
-    
-    // Animate particle
-    anime({
-      targets: particle,
-      translateX: () => anime.random(-100, 100),
-      translateY: () => anime.random(-100, 100),
-      scale: [0, 1, 0],
-      opacity: [0, 0.8, 0],
-      duration: () => anime.random(3000, 6000),
-      delay: () => anime.random(0, 2000),
-      loop: true,
-      easing: 'easeInOutSine'
-    });
-  }
-}
-
-// Create scanning dots animation on circles
-function createScanningDots() {
-  const scanDots = document.getElementById('scanDots');
-  
-  // Dots on middle circle
-  const middleDotCount = 6;
-  const middleRadius = 100;
-  
-  for (let i = 0; i < middleDotCount; i++) {
-    const dot = document.createElement('div');
-    dot.className = 'dot';
-    
-    const angle = (i / middleDotCount) * 360;
-    const x = Math.cos(angle * Math.PI / 180) * middleRadius;
-    const y = Math.sin(angle * Math.PI / 180) * middleRadius;
-    
-    dot.style.left = `calc(50% + ${x}px)`;
-    dot.style.top = `calc(50% + ${y}px)`;
-    dot.style.background = '#ff0080';
-    
-    scanDots.appendChild(dot);
-    
-    // Animate dot
-    anime({
-      targets: dot,
-      scale: [0, 1.5, 0],
-      opacity: [0, 1, 0],
-      duration: 2000,
-      delay: i * 333,
-      loop: true,
-      easing: 'easeInOutQuad'
-    });
-  }
-  
-  // Dots on inner circle
-  const innerDotCount = 4;
-  const innerRadius = 70;
-  
-  for (let i = 0; i < innerDotCount; i++) {
-    const dot = document.createElement('div');
-    dot.className = 'dot';
-    
-    const angle = (i / innerDotCount) * 360 + 45; // Offset by 45 degrees
-    const x = Math.cos(angle * Math.PI / 180) * innerRadius;
-    const y = Math.sin(angle * Math.PI / 180) * innerRadius;
-    
-    dot.style.left = `calc(50% + ${x}px)`;
-    dot.style.top = `calc(50% + ${y}px)`;
-    dot.style.background = '#00ffcc';
-    
-    scanDots.appendChild(dot);
-    
-    // Animate dot
-    anime({
-      targets: dot,
-      scale: [0, 1.3, 0],
-      opacity: [0, 1, 0],
-      duration: 1800,
-      delay: i * 450,
-      loop: true,
-      easing: 'easeInOutQuad'
-    });
-  }
-}
-
-// Initialize all animations
-function initializeAnimations() {
-  // Create scanning dots
-  createScanningDots();
-  
-  // Rings are animated via CSS, no need for anime.js here
-  
-  // Animate container entrance
-  anime({
-    targets: '.container',
-    scale: [0.8, 1],
-    opacity: [0, 1],
-    duration: 1000,
-    easing: 'easeOutElastic(1, .8)'
-  });
-}
-
-// Start the scanning process
+// Start the scanning process (polling checkStatus)
 function startScanning() {
   checkInterval = setInterval(async () => {
     checkCount++;
-    
-    const response = await browser.runtime.sendMessage({
-      action: 'checkStatus',
-      tabId: tabId
-    });
-    
-    if (response.status === 'no_check') {
+    let response;
+    try {
+      response = await browser.runtime.sendMessage({ action: 'checkStatus', tabId });
+    } catch (err) {
+      console.error('[Blocking] checkStatus sendMessage failed', err);
+      response = null;
+    }
+    if (!response || response.status === 'no_check') {
+      console.info('[Blocking] no pending check, redirecting immediately', { tabId, targetUrl });
       redirectToTarget();
       return;
     }
-    
-    const { status, hasMalware, hasSuspect, scripts, totalScripts } = response;
-    
-      // Update UI
-      const checkedScripts = scripts.filter(s => s.status !== 'pending').length;
-      updateProgress(checkedScripts, totalScripts);
 
-      // Count threats (hash matches or ip matches)
-      const maliciousScripts = scripts.filter(s => s.status === 'malware');
-      // Also treat any script with ipMatches as threat
-      const ipThreats = scripts.filter(s => s.ipMatches && s.ipMatches.length > 0 && s.status !== 'malware');
-      const threatCount = maliciousScripts.length + ipThreats.length;
-      animateNumber('riskScore', threatCount);
-    
-    // Check if complete
+    const { status, scripts = [], totalScripts = 0 } = response;
+    console.debug('[Blocking] checkStatus response', { tabId, status, scriptsCount: scripts.length, totalScripts });
+
+    const checkedScripts = scripts.filter(s => s.status !== 'pending').length;
+    updateProgress(checkedScripts, totalScripts);
+
+    // Count threats (hash matches or ip matches)
+    const maliciousScripts = scripts.filter(s => s.status === 'malware');
+    const ipThreats = scripts.filter(s => s.ipMatches && s.ipMatches.length > 0 && s.status !== 'malware');
+    const threatCount = maliciousScripts.length + ipThreats.length;
+    setNumber('riskScore', threatCount);
+
     if (status === 'complete') {
       clearInterval(checkInterval);
-
-      if (maliciousScripts.length > 0 || ipThreats.length > 0) {
-        showMalwareWarning(scripts);
-      } else {
+      if (threatCount > 0) showMalwareWarning(scripts);
+      else {
         showSuccess();
-        setTimeout(() => redirectToTarget(), 2000);
+        setTimeout(() => redirectToTarget(), 1500);
       }
     }
-    
-    // Timeout after 30 seconds
+
     if (checkCount > 60) {
       clearInterval(checkInterval);
       showTimeout();
@@ -175,229 +61,79 @@ function startScanning() {
 
 // Update progress with animation
 function updateProgress(checked, total) {
-  const progress = total > 0 ? (checked / total) * 100 : 0;
-  
-  // Animate progress bar
-  anime({
-    targets: '#progressBar',
-    width: progress + '%',
-    duration: 500,
-    easing: 'easeOutQuad'
-  });
-  
-  // Animate numbers
-  animateNumber('checkedCount', checked);
-  animateNumber('totalCount', total);
+  const progress = total > 0 ? Math.round((checked / total) * 100) : 0;
+  const progressBar = document.getElementById('progressBar');
+  if (progressBar) progressBar.style.width = progress + '%';
+  setNumber('checkedCount', checked);
+  setNumber('totalCount', total);
 }
 
-// Animate number changes
-function animateNumber(elementId, targetValue) {
-  const element = document.getElementById(elementId);
-  const currentValue = parseInt(element.textContent) || 0;
-  
-  if (currentValue !== targetValue) {
-    anime({
-      targets: { value: currentValue },
-      value: targetValue,
-      duration: 800,
-      easing: 'easeOutQuad',
-      update: function(anim) {
-        element.textContent = Math.round(anim.animatables[0].target.value);
-      }
-    });
-  }
+function setNumber(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = String(value);
 }
 
 // Show success state
 function showSuccess() {
-  // Change colors to green
-  anime({
-    targets: '.container',
-    borderColor: '#00ff88',
-    duration: 1000
-  });
-  
-  anime({
-    targets: '.shield-icon',
-    background: 'linear-gradient(135deg, #00ff88, #00cc66)',
-    scale: [1, 1.3, 1.1],
-    duration: 1000,
-    easing: 'easeOutElastic(1, .6)'
-  });
-  
-  // Update text
-  document.getElementById('title').textContent = '✅ AN TOÀN';
-  document.getElementById('status').textContent = 'Không phát hiện mã độc. Đang chuyển hướng...';
-  
-  // Hide scanner rings
-  anime({
-    targets: '.scanner-ring',
-    opacity: 0.3,
-    duration: 500
-  });
-  
-  // Success particles
-  createSuccessParticles();
+  const title = document.getElementById('title');
+  const status = document.getElementById('status');
+  if (title) title.textContent = 'AN TOÀN';
+  if (status) status.textContent = 'Không phát hiện mã độc. Đang chuyển hướng...';
 }
 
 // Show malware warning
 function showMalwareWarning(scripts) {
-  const maliciousScripts = scripts.filter(s => s.status === 'malware');
-  const ipThreats = scripts.filter(s => s.ipMatches && s.ipMatches.length > 0 && s.status !== 'malware');
+  const details = scripts.filter(s => s.status === 'malware' || (s.ipMatches && s.ipMatches.length > 0)).map(s => {
+    const shortUrl = s.url.length > 80 ? s.url.substring(0, 80) + '...' : s.url;
+    const hash = s.sha256 || 'n/a';
+    const hashSource = s.hashResult?.source || (s.hashResult && s.hashResult.found ? 'local' : 'none');
+    const ipList = (s.ipMatches || []).map(im => im.ip || (im.meta && (im.meta.IP || im.meta.ip)) || JSON.stringify(im)).join(', ');
+    return `<div class="script-item"><div class="script-url" title="${s.url}">${shortUrl}</div><div>Hash: ${hash}</div><div>Hash source: ${hashSource}</div>${ipList ? `<div>IP matches: ${ipList}</div>` : ''}</div>`;
+  }).join('');
 
-  // Hide main content
-  anime({
-    targets: '.scanner-container, .progress-container, .stats, .url-display',
-    opacity: 0,
-    translateY: -30,
-    duration: 500
-  });
-
-  // Change container style
+  const warningEl = document.getElementById('warningMalware');
+  const detailsEl = document.getElementById('malwareDetails');
   const container = document.getElementById('mainContainer');
-  container.classList.add('warning-malware');
-
-  // Show warning
-  setTimeout(() => {
-    const warningEl = document.getElementById('warningMalware');
-    warningEl.classList.add('active');
-
-    anime({
-      targets: '#warningMalware',
-      opacity: [0, 1],
-      scale: [0.8, 1],
-      duration: 800,
-      easing: 'easeOutElastic(1, .8)'
-    });
-
-    // Build details: include sha256, hash source, and IP matches
-    const details = scripts.filter(s => s.status === 'malware' || (s.ipMatches && s.ipMatches.length > 0)).map(s => {
-      const shortUrl = s.url.length > 50 ? s.url.substring(0, 50) + '...' : s.url;
-      const hash = s.sha256 || 'n/a';
-      const hashSource = s.hashResult?.source || s.hashResult?.source || (s.hashResult && s.hashResult.found ? 'local' : 'none');
-      const ipList = (s.ipMatches || []).map(im => im.ip || (im.meta && (im.meta.IP || im.meta.ip)) || JSON.stringify(im)).join(', ');
-
-      return `
-        <div class="script-item">
-          <div class="script-score high-risk">⚠️ Threat</div>
-          <div class="script-url" title="${s.url}">${shortUrl}</div>
-          <div class="warning-reason">Hash: ${hash}</div>
-          <div class="warning-reason">Hash source: ${hashSource}</div>
-          ${ ipList ? `<div class="warning-reason">IP matches: ${ipList}</div>` : '' }
-        </div>
-      `;
-    }).join('');
-
-    document.getElementById('malwareDetails').innerHTML = details;
-
-    // Glitch effect
-    setInterval(() => {
-      anime({
-        targets: '.glitch',
-        translateX: [0, -2, 2, 0],
-        translateY: [0, 2, -2, 0],
-        duration: 100
-      });
-    }, 2000);
-
-  }, 500);
+  if (detailsEl) detailsEl.innerHTML = details;
+  if (container) container.classList.add('warning-malware');
+  if (warningEl) warningEl.hidden = false;
 }
 
 // Show suspect warning
 function showSuspectWarning(scripts) {
   const suspectScripts = scripts.filter(s => s.status === 'suspect');
-  
-  // Hide main content
-  anime({
-    targets: '.scanner-container, .progress-container, .stats, .url-display',
-    opacity: 0,
-    translateY: -30,
-    duration: 500
-  });
-  
-  // Change container style
-  const container = document.getElementById('mainContainer');
-  container.classList.add('warning-suspect');
-  
-  // Show warning
-  setTimeout(() => {
-    const warningEl = document.getElementById('warningSuspect');
-    warningEl.classList.add('active');
-    
-    anime({
-      targets: '#warningSuspect',
-      opacity: [0, 1],
-      scale: [0.8, 1],
-      duration: 800,
-      easing: 'easeOutElastic(1, .8)'
-    });
-    
-    // Show details
-    const details = suspectScripts.map(s => {
-      const reasons = s.score?.reasons || [];
-      const shortUrl = s.url.length > 60 ? s.url.substring(0, 60) + '...' : s.url;
-      const score = s.score?.score || 0;
-      
-      let riskClass = 'low-risk';
-      if (score >= 70) riskClass = 'high-risk';
-      else if (score >= 40) riskClass = 'medium-risk';
-      
-      return `
-        <div class="script-item">
-          <div class="script-score ${riskClass}">🔍 Score: ${score}/100</div>
-          <div class="script-url">${shortUrl}</div>
-          ${reasons.slice(0, 4).map(r => `<div class="warning-reason">${r}</div>`).join('')}
-        </div>
-      `;
-    }).join('');
-    
-    document.getElementById('suspectDetails').innerHTML = details;
-    
-  }, 500);
+  const details = suspectScripts.map(s => `<div class="script-item"><div class="script-url">${s.url}</div></div>`).join('');
+  const detailsEl = document.getElementById('suspectDetails');
+  const warningEl = document.getElementById('warningSuspect');
+  if (detailsEl) detailsEl.innerHTML = details;
+  if (warningEl) warningEl.hidden = false;
 }
 
 // Show timeout state
 function showTimeout() {
   document.getElementById('title').textContent = 'HẾT THỜI GIAN';
   document.getElementById('status').textContent = 'Không thể hoàn thành kiểm tra. Đang chuyển hướng...';
-  
-  anime({
-    targets: '.container',
-    borderColor: '#ffaa00',
-    duration: 1000
-  });
-  
-  setTimeout(() => redirectToTarget(), 3000);
+  // Simple visual change, then redirect after a short delay
+  const container = document.querySelector('.container');
+  if (container) container.style.borderColor = '#ffaa00';
+  setTimeout(() => {
+    console.info('[Blocking] timeout reached, redirecting', { tabId, targetUrl });
+    redirectToTarget();
+  }, 3000);
 }
 
 // Create success particles effect
 function createSuccessParticles() {
+  // Removed particle animation dependency; keep this as a no-op placeholder
+  // so other code can call it safely without anime.js.
   const container = document.querySelector('.container');
-  
-  for (let i = 0; i < 20; i++) {
-    const particle = document.createElement('div');
-    particle.style.position = 'absolute';
-    particle.style.width = '4px';
-    particle.style.height = '4px';
-    particle.style.background = '#00ff88';
-    particle.style.borderRadius = '50%';
-    particle.style.pointerEvents = 'none';
-    particle.style.left = '50%';
-    particle.style.top = '50%';
-    
-    container.appendChild(particle);
-    
-    anime({
-      targets: particle,
-      translateX: () => anime.random(-200, 200),
-      translateY: () => anime.random(-200, 200),
-      scale: [0, 1, 0],
-      opacity: [1, 0],
-      duration: 2000,
-      easing: 'easeOutQuad',
-      complete: () => particle.remove()
-    });
-  }
+  if (!container) return;
+  // Small visual flash using CSS transitions
+  container.style.transition = 'box-shadow 400ms ease-out';
+  container.style.boxShadow = '0 0 20px rgba(0,255,136,0.6)';
+  setTimeout(() => {
+    container.style.boxShadow = '';
+  }, 600);
 }
 
 // Redirect to target URL
@@ -408,47 +144,37 @@ async function redirectToTarget() {
     tabId: tabId,
     url: targetUrl
   });
-  
-  // Animate exit
-  anime({
-    targets: '.container',
-    scale: 0.8,
-    opacity: 0,
-    duration: 500,
-    easing: 'easeInBack(1.7)',
-    complete: () => {
-      setTimeout(() => {
-        window.location.href = targetUrl;
-      }, 100);
-    }
-  });
+  // Simple fade-out then navigate
+  const container = document.querySelector('.container');
+  if (container) {
+    container.style.transition = 'opacity 300ms ease-out, transform 300ms ease-out';
+    container.style.opacity = '0';
+    container.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+      window.location.href = targetUrl || '/';
+    }, 350);
+  } else {
+    window.location.href = targetUrl || '/';
+  }
 }
 
 // Button event handlers
-document.getElementById('btnBlockMalware')?.addEventListener('click', () => {
-  anime({
-    targets: '.container',
-    scale: 0,
-    opacity: 0,
-    duration: 300,
-    complete: () => window.close()
-  });
-});
+function navigateBack() {
+  console.info('[Blocking] navigateBack called', { tabId, previousUrl });
+  if (previousUrl) {
+    // Navigate directly to previous URL
+    window.location.href = previousUrl;
+  } else {
+    // Fallback to history.back() if no explicit previous URL
+    try {
+      window.history.back();
+    } catch (e) {
+      window.close();
+    }
+  }
+}
 
-document.getElementById('btnContinueMalware')?.addEventListener('click', () => {
-  redirectToTarget();
-});
-
-document.getElementById('btnBlockSuspect')?.addEventListener('click', () => {
-  anime({
-    targets: '.container',
-    scale: 0,
-    opacity: 0,
-    duration: 300,
-    complete: () => window.close()
-  });
-});
-
-document.getElementById('btnContinueSuspect')?.addEventListener('click', () => {
-  redirectToTarget();
-});
+document.getElementById('btnBlockMalware')?.addEventListener('click', () => navigateBack());
+document.getElementById('btnContinueMalware')?.addEventListener('click', () => redirectToTarget());
+document.getElementById('btnBlockSuspect')?.addEventListener('click', () => navigateBack());
+document.getElementById('btnContinueSuspect')?.addEventListener('click', () => redirectToTarget());
